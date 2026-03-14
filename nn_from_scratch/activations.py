@@ -8,7 +8,7 @@ from typing import Tuple, List
 class Activations():
     def __init__(self, function_choice: str):
         self.function_choice = function_choice.lower()
-        self.function_options = ['relu', 'leaky_relu', 'sigmoid', 'softmax', 'tanh']
+        self.function_options = ['relu', 'leaky_relu', 'sigmoid', 'softmax', 'tanh', 'linear']
         self.invalid_func = False 
         self.is_in_options()
         self.func_dict = {
@@ -16,7 +16,8 @@ class Activations():
             'leaky_relu': [self.leaky_relu_forward, self.leaky_relu_backward],
             'sigmoid': [self.sigmoid_forward, self.sigmoid_backward],
             'softmax': [self.softmax_forward, self.softmax_backwards],
-            'tanh': [self.tanh_forward, self.tanh_backward]
+            'tanh': [self.tanh_forward, self.tanh_backward],
+            'linear': [self.linear_forward, self.linear_backward]
         }
         self.selected_methods = self.func_dict[self.function_choice]
         
@@ -96,7 +97,7 @@ class Activations():
             np.ndarray: deriavtive results 
         '''
         sigmoid_z = self.sigmoid_forward(z)
-        sigmoid_derivative = sigmoid_z(1- sigmoid_z)
+        sigmoid_derivative = sigmoid_z * (1- sigmoid_z)
         return sigmoid_derivative
     
     def leaky_relu_forward(self, z: np.ndarray, alpha: float = 0.01) -> np.ndarray:
@@ -161,10 +162,9 @@ class Activations():
         Return: 
             np.ndarray: neuron activations
         '''
-        e_z = np.exp(z)
-        exp_sum = np.sum(e^z)
-        softmax_z = e_z/exp_sum
-        return softmax_z
+        e_z = np.exp(z - np.max(z, axis=0, keepdims=True))
+        return e_z / np.sum(e_z, axis=0, keepdims=True)
+        
     
     def softmax_backwards(self, z: np.ndarray)-> np.ndarray:
         '''
@@ -176,6 +176,12 @@ class Activations():
         Return: 
             np.ndarray: derivative results 
         ''' 
-        softmax_z = self.softmax_forward(z)
-        softmax_derivative = softmax_z.T @ (-1 * softmax_z) + (np.identity(softmax_z.shape[1]) * softmax_z ) # 
-        return softmax_derivative
+        s = self.softmax_forward(z).reshape(-1, 1)
+        return np.diagflat(s) - s @ s.T 
+
+    def linear_forward(self, z: np.ndarray) -> np.ndarray:
+        return z
+
+    def linear_backward(self, z: np.ndarray) -> np.ndarray:
+        return np.ones_like(z)
+       
